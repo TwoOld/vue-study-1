@@ -3,14 +3,14 @@ function defineReactive(obj, key, val) {
   observe(val);
 
   const dep = new Dep()
-  
+
   Object.defineProperty(obj, key, {
     get() {
       console.log("get", key);
 
       // 判断一下Dep.target是否存在，若存在则收集依赖
       Dep.target && dep.addDep(Dep.target)
-      
+
       return val;
     },
     set(v) {
@@ -53,8 +53,9 @@ class Observer {
   }
 }
 
-// 将$data的key代理到vm上去，用户就可以直接使用
+// 将$xx的key代理到vm上去，用户就可以直接使用
 function proxy(vm) {
+  // $data
   Object.keys(vm.$data).forEach((key) => {
     Object.defineProperty(vm, key, {
       get() {
@@ -65,18 +66,31 @@ function proxy(vm) {
       }
     })
   });
+  // $methods
+  Object.keys(vm.$methods).forEach((key) => {
+    Object.defineProperty(vm, key, {
+      get() {
+        return vm.$methods[key]
+      },
+      set(v) {
+        vm.$methods[key] = v
+      }
+    })
+  });
 }
 
+// eslint-disable-next-line
 class KVue {
   constructor(options) {
     // 1.响应式
     this.$options = options
     this.$data = options.data
+    this.$methods = options.methods
     observe(this.$data)
 
     // 1.1代理
     proxy(this)
-    
+
     // 2.编译
     new Compile(options.el, this)
   }
@@ -103,7 +117,7 @@ class Compile {
         if (node.childNodes.length > 0) {
           this.compile(node)
         }
-      } else if(this.isInter(node)) {
+      } else if (this.isInter(node)) {
         // 2.插值绑定文本 {{xxx}}
         // console.log('编译文本', node.textContent);
         this.compileText(node)
@@ -118,7 +132,11 @@ class Compile {
   isDir(attrName) {
     return attrName.startsWith('k-')
   }
-  
+
+  isEvent(attrName) {
+    return attrName.startsWith('@')
+  }
+
   // update: 给传入的node做初始化并创建watcher负责其更新
   update(node, exp, dir) {
     const fn = this[dir + 'Updater']
@@ -126,22 +144,22 @@ class Compile {
     fn && fn(node, this.$vm[exp])
 
     // 2.创建watcher实例
-    new Watcher(this.$vm, exp, function(val) {
+    new Watcher(this.$vm, exp, function (val) {
       fn && fn(node, val)
     })
   }
-  
+
   // 插值文本编译 {{}}
   compileText(node) {
     this.update(node, RegExp.$1, 'text')
     // console.log(RegExp.$1);
-    
+
   }
 
   textUpdater(node, val) {
     node.textContent = val
   }
-  
+
   // 编译元素
   compileElement(node) {
     // 获取节点特性
@@ -154,6 +172,11 @@ class Compile {
         // 指令
         // 获取指令执行函数并调用
         const dir = attrName.substring(2)
+        this[dir] && this[dir](node, exp)
+      } else if (this.isEvent(attrName)) {
+        // 事件
+        // 获取事件执行函数并调用
+        const dir = attrName.substring(1)
         this[dir] && this[dir](node, exp)
       }
     })
@@ -170,6 +193,30 @@ class Compile {
   }
   htmlUpdater(node, val) {
     node.innerHTML = val
+  }
+
+  // k-model
+  model(node, exp) {
+    // 初始化
+    node.value = this.$vm[exp]
+    // 绑定input事件
+    this.input(node, exp)
+  }
+
+  // @click
+  click(node, exp) {
+    // 箭头函数 绑定上下文this
+    node.onclick = (e) => {
+      this.$vm[exp] && this.$vm[exp](e)
+    }
+  }
+
+  // @input
+  input(node, exp) {
+    // 箭头函数 绑定上下文this
+    node.addEventListener('input', (e) => {
+      this.$vm[exp] = e.target.value
+    })
   }
 }
 

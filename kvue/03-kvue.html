@@ -3,7 +3,8 @@
   <p @click="onclick">{{counter}}</p>
   <p k-text="counter"></p>
   <p k-html="desc"></p>
-  <input type="text" k-model="desc">
+  <p k-html="inputVal"></p>
+  <input type="text" k-model="inputVal">
 </div>
 <script src="./kvue.js"></script>
 <script>
@@ -11,10 +12,17 @@
     el: '#app',
     data: {
       counter: 1,
-      desc: '<p>村长<span style="color: red">真棒</span></p>'
+      desc: '<p>村长<span style="color: red">真棒</span></p>',
+      inputVal: 'Input value'
     },
+    methods: {
+      onclick(e) {
+        console.log('click', e);
+        this.counter++
+      }
+    }
   })
-  setInterval(() => {
-    app.counter++
-  }, 1000);
+  // setInterval(() => {
+  //   app.counter++
+  // }, 1000);
 </script>
