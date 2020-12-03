@@ -205,6 +205,7 @@ class Compile {
 
   // @click
   click(node, exp) {
+    // 绑定元素的onclick点击事件
     // 箭头函数 绑定上下文this
     node.onclick = (e) => {
       this.$vm[exp] && this.$vm[exp](e)
@@ -213,6 +214,7 @@ class Compile {
 
   // @input
   input(node, exp) {
+    // 元素绑定input事件
     // 箭头函数 绑定上下文this
     node.addEventListener('input', (e) => {
       this.$vm[exp] = e.target.value
