@@ -1,5 +1,3 @@
-# study-vue
-
 ## 实现 @click
 
 ```
